@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>상식퀴즈 50문항</title>
+<meta name="description" content="중학생 수준의 지식 테스트 ver.2 — 50문항 상식퀴즈">
+<style>
+:root{
+  --bg:#f6f4ef; --card:#ffffff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e4e1d8;
+  --accent:#2f5bea; --accent-ink:#fff; --ok:#1f8a4c; --ok-bg:#e6f5ec; --bad:#c43c3c; --bad-bg:#fbeaea;
+  --star:#d99a00;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#141416; --card:#1e1e22; --ink:#f2f2f4; --muted:#a0a0a8; --line:#2e2e34;
+    --accent:#6f8dff; --accent-ink:#0d0d10; --ok:#4cc985; --ok-bg:#16301f; --bad:#ff7b7b; --bad-bg:#3a1b1b;
+    --star:#ffc53d;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;line-height:1.6}
+.wrap{max-width:640px;margin:0 auto;padding:24px 16px 48px}
+header h1{font-size:1.5rem;margin:0 0 4px}
+header p{margin:0;color:var(--muted);font-size:.92rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:20px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);
+  padding:10px 16px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:.88rem}
+.bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin:10px 0 18px}
+.bar>i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+.q{font-size:1.15rem;font-weight:600;margin:0 0 16px;word-break:keep-all}
+.star{color:var(--star);font-size:.82rem;font-weight:700;margin-bottom:6px}
+input[type=text]{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);
+  background:var(--bg);color:var(--ink);font:inherit;font-size:1rem}
+.result{margin-top:14px;padding:12px 14px;border-radius:10px;display:none}
+.result.ok{display:block;background:var(--ok-bg);color:var(--ok)}
+.result.bad{display:block;background:var(--bad-bg);color:var(--bad)}
+.result b{color:var(--ink)}
+.mode label{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;margin-bottom:8px}
+.mode small{color:var(--muted);display:block}
+.score{font-size:2.6rem;font-weight:800;margin:4px 0}
+ol.review{padding-left:22px;margin:12px 0 0}
+ol.review li{margin-bottom:8px;word-break:keep-all}
+.tag{font-size:.78rem;font-weight:700;padding:1px 7px;border-radius:6px;margin-left:4px}
+.tag.o{background:var(--ok-bg);color:var(--ok)} .tag.x{background:var(--bad-bg);color:var(--bad)}
+.hide{display:none}
+footer{margin-top:28px;color:var(--muted);font-size:.8rem;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🧠 상식퀴즈 50문항</h1>
+    <p>중학생 수준의 지식 테스트 ver.2 · 답을 입력하면 자동 채점돼요</p>
+  </header>
+
+  <section id="start" class="card">
+    <div class="mode">
+      <label><input type="radio" name="mode" value="all" checked> <span><b>전체 50문항</b><small>영상에 나온 문제 전부</small></span></label>
+      <label><input type="radio" name="mode" value="hard"> <span><b>⭐ 어려운 문제만 (16문항)</b><small>상대적으로 난이도가 높은 문제</small></span></label>
+      <label><input type="checkbox" id="shuffle"> <span><b>문제 순서 섞기</b></span></label>
+    </div>
+    <button class="btn primary" id="go" style="width:100%;margin-top:6px">시작하기</button>
+  </section>
+
+  <section id="play" class="card hide">
+    <div class="meta"><span id="pos"></span><span id="live"></span></div>
+    <div class="bar"><i id="prog"></i></div>
+    <div class="star hide" id="star">⭐ 어려운 문제</div>
+    <p class="q" id="qtext"></p>
+    <form id="form" autocomplete="off">
+      <input type="text" id="ans" placeholder="정답을 입력하세요">
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="submit" type="submit">제출</button>
+        <button class="btn" id="skip" type="button">모르겠어요</button>
+        <button class="btn hide" id="override" type="button">맞은 걸로 할게요</button>
+        <button class="btn primary hide" id="next" type="button">다음 문제 →</button>
+      </div>
+    </form>
+    <div class="result" id="result"></div>
+  </section>
+
+  <section id="end" class="card hide">
+    <div style="color:var(--muted)">최종 점수</div>
+    <div class="score" id="final"></div>
+    <div id="grade" style="font-weight:600"></div>
+    <div class="row" style="margin-top:14px"><button class="btn primary" id="again">다시 하기</button></div>
+    <ol class="review" id="review"></ol>
+  </section>
+
+  <footer>출처: 유튜브 문과언니 「[상식퀴즈] 중학생 수준의 지식 테스트 ver.2 50문항」</footer>
+</div>
+
+<script>
+// h: 어려운 문제 여부, a: 표시용 정답, k: 허용 답안 목록 (각 항목은 모두 포함되어야 하는 키워드 배열)
+const Q = [
+ {q:"대한민국에서 가장 큰 섬의 이름은?", a:"제주도", k:[["제주"]]},
+ {h:1,q:"홍채 세포 DNA의 이상으로 멜라닌 색소 농도가 달라져, 양쪽 눈의 색깔이 다른 현상은?", a:"오드아이", k:[["오드아이"],["홍채이색"]]},
+ {q:"전래동화 「콩쥐팥쥐」에서 밑 빠진 독을 막아 준 동물은?", a:"두꺼비", k:[["두꺼비"]]},
+ {q:"네팔의 수도는?", a:"카트만두", k:[["카트만두"]]},
+ {h:1,q:"가격은 명품보다 싸지만 품질은 명품에 가까운 상품을 뜻하는 말은?", a:"매스티지", k:[["매스티지"],["masstige"]]},
+ {q:"1958년 미국이 우주 개발을 위해 여러 기관을 합쳐 만든 미국 국립항공우주국의 이름은?", a:"나사(NASA)", k:[["나사"],["nasa"]]},
+ {q:"아랍어로 쓰였고, 종교 내용과 함께 신자의 생활을 정하는 율법도 담은 이슬람교 경전은?", a:"코란(꾸란)", k:[["코란"],["꾸란"],["쿠란"]]},
+ {q:"마이어스와 브릭스가 융의 심리 유형론을 바탕으로 만든 자기 보고식 성격 유형 검사는?", a:"MBTI", k:[["mbti"]]},
+ {q:"다보탑과 석가탑이 있는 경주의 절은?", a:"불국사", k:[["불국사"]]},
+ {h:1,q:"'내 집 뒷마당에는 안 된다'는 뜻으로, 우리 지역에 위험시설이나 혐오시설이 들어서는 것을 주민들이 강하게 반대하는 현상은?", a:"님비(NIMBY) 현상", k:[["님비"],["nimby"]]},
+ {q:"세계에서 가장 작은 나라는?", a:"바티칸", k:[["바티칸"]]},
+ {h:1,q:"영국은 몇 개의 지역으로 이루어져 있는가? 각 지역의 이름도 말하시오.", a:"4개: 잉글랜드, 스코틀랜드, 웨일스, 북아일랜드", k:[["4","잉글랜드","스코틀랜드","웨일","북아일랜드"],["네","잉글랜드","스코틀랜드","웨일","북아일랜드"]]},
+ {q:"모든 혈액형에게 피를 줄 수 있는 혈액형은?", a:"O형", k:[["o"],["오형"]]},
+ {q:"주식을 적은 돈으로 하는 개인 투자자를 뜻하는 말은?", a:"개미", k:[["개미"]]},
+ {h:1,q:"두 사람 중 한쪽이 포기하면 다른 쪽이 이득을 보고, 각자에게 가장 좋은 선택이 상대의 행동에 달린 게임을 뜻하는 말은?", a:"치킨 게임", k:[["치킨게임"],["chicken"]]},
+ {q:"모아이 석상이 있는 섬은?", a:"이스터섬", k:[["이스터"],["라파누이"]]},
+ {q:"천 원짜리 지폐에 그려진 인물은?", a:"퇴계 이황", k:[["이황"],["퇴계"]]},
+ {q:"스승보다 뛰어난 제자를 비유하는 사자성어는?", a:"청출어람", k:[["청출어람"]]},
+ {q:"나침반의 N극이 가리키는 방향은 동서남북 중 어디인가?", a:"북쪽", k:[["북"]]},
+ {h:1,q:"민간신앙과 유교·불교·선교의 가르침을 섞어 만든 우리나라의 민족 종교는?", a:"동학", k:[["동학"],["천도교"]]},
+ {h:1,q:"곡물에 곰팡이를 번식시켜 당화 효소가 생기게 한 것으로, 막걸리 같은 술을 빚을 때 쓰는 발효제는?", a:"누룩", k:[["누룩"]]},
+ {q:"대한민국에서 IMF 경제위기가 일어난 해는?", a:"1997년", k:[["1997"],["97"]]},
+ {q:"'아나바다 운동'은 무엇의 줄임말인가?", a:"아껴 쓰고, 나눠 쓰고, 바꿔 쓰고, 다시 쓰기", k:[["아껴","나눠","바꿔","다시"],["아껴","나누","바꾸","다시"]]},
+ {h:1,q:"볼링에서 첫 투구에 다 쓰러뜨리지 못하고 남은 핀을 두 번째 투구로 모두 쓰러뜨리는 것은?", a:"스페어", k:[["스페어"],["spare"]]},
+ {q:"피아노곡 「엘리제를 위하여」를 작곡한 사람은?", a:"베토벤", k:[["베토벤"]]},
+ {q:"「모나리자」를 소장한 프랑스의 박물관은?", a:"루브르 박물관", k:[["루브르"],["louvre"]]},
+ {h:1,q:"대한민국 최초의 남극 과학기지는?", a:"세종과학기지", k:[["세종"]]},
+ {h:1,q:"제주도를 '삼다도'라고도 부른다. 많은 세 가지는?", a:"여자, 바람, 돌", k:[["여자","바람","돌"]]},
+ {q:"호주의 수도는?", a:"캔버라", k:[["캔버라"],["canberra"]]},
+ {q:"늙지 않고 오래 살기를 꿈꾸며 세상을 뒤져 불로초를 찾게 한 왕은?", a:"진시황", k:[["진시황"],["시황제"]]},
+ {q:"평창 동계올림픽이 열린 해는?", a:"2018년", k:[["2018"]]},
+ {q:"두 사람이 다투는 사이에 제3자가 이득을 본다는 뜻의 사자성어는?", a:"어부지리", k:[["어부지리"]]},
+ {h:1,q:"북한에서는 아이스크림을 무엇이라고 부르는가?", a:"얼음보숭이", k:[["얼음보숭이"]]},
+ {q:"한국의 국가번호는?", a:"82번", k:[["82"]]},
+ {q:"「백조의 호수」를 작곡한 사람은?", a:"차이코프스키", k:[["차이코프스키"],["차이콥스키"]]},
+ {q:"영화관에서 이른 아침 첫 회로 상영하는 영화를 무엇이라고 하는가?", a:"조조 영화", k:[["조조"]]},
+ {q:"어린이 보호구역의 제한속도는?", a:"시속 30km", k:[["30"]]},
+ {q:"원래 신문·음료 등을 파는 매점을 뜻하며, 지금은 은행·패스트푸드점·영화관 등에 있는 터치스크린 무인 단말기를 가리키는 말은?", a:"키오스크", k:[["키오스크"],["kiosk"]]},
+ {h:1,q:"국가를 이루는 필수 3요소는?", a:"영토, 주권, 국민", k:[["영토","주권","국민"]]},
+ {q:"축구는 한 팀에 몇 명이 경기하는가?", a:"11명", k:[["11"],["열한"]]},
+ {h:1,q:"마음이 불안하고 걱정스러워 앉아 있어도 안절부절못한다는 뜻의 사자성어는?", a:"좌불안석", k:[["좌불안석"]]},
+ {q:"피사의 사탑은 어느 나라에 있는가?", a:"이탈리아", k:[["이탈리아"]]},
+ {h:1,q:"아이스하키에서 쓰는 공의 이름은?", a:"퍽", k:[["퍽"],["puck"]]},
+ {h:1,q:"김을 세는 단위는 '톳'이다. 김 한 톳은 몇 장인가?", a:"100장", k:[["100"],["백"]]},
+ {h:1,q:"사건 신고는 112, 응급 신고는 119이다. 날씨 안내를 듣는 번호는?", a:"131", k:[["131"]]},
+ {q:"한국 화폐 단위는 원, 일본은 엔이다. 중국의 화폐 단위는?", a:"위안", k:[["위안"],["元"],["yuan"],["rmb"]]},
+ {q:"빗살무늬토기는 어느 시대의 유물인가?", a:"신석기 시대", k:[["신석기"]]},
+ {q:"오감이라 불리는 인간의 다섯 가지 감각을 모두 말하시오.", a:"시각, 청각, 후각, 미각, 촉각", k:[["시각","청각","후각","미각","촉각"]]},
+ {q:"태양계에서 가장 큰 행성은?", a:"목성", k:[["목성"],["jupiter"]]},
+ {q:"타지에서 고향을 그리워하는 마음 때문에 생기는 병은?", a:"향수병", k:[["향수"]]},
+];
+
+const $ = id => document.getElementById(id);
+const norm = s => s.toLowerCase().replace(/[\s.,·:;!?'"()\-~/]/g, "");
+const isCorrect = (input, k) => { const n = norm(input); return n && k.some(keys => keys.every(w => n.includes(norm(w)))); };
+
+let list = [], i = 0, score = 0, log = [];
+
+function start(){
+  const hard = document.querySelector('input[name=mode]:checked').value === "hard";
+  list = Q.map((x, idx) => ({...x, n: idx + 1})).filter(x => !hard || x.h);
+  if ($("shuffle").checked) for (let j = list.length - 1; j > 0; j--) { const r = Math.floor(Math.random() * (j + 1)); [list[j], list[r]] = [list[r], list[j]]; }
+  i = 0; score = 0; log = [];
+  $("start").classList.add("hide"); $("end").classList.add("hide"); $("play").classList.remove("hide");
+  show();
+}
+
+function show(){
+  const x = list[i];
+  $("pos").textContent = `${i + 1} / ${list.length}  (원본 ${x.n}번)`;
+  $("live").textContent = `점수 ${score}`;
+  $("prog").style.width = (i / list.length * 100) + "%";
+  $("star").classList.toggle("hide", !x.h);
+  $("qtext").textContent = `Q${i + 1}. ${x.q}`;
+  $("ans").value = ""; $("ans").disabled = false; $("ans").focus();
+  $("result").className = "result"; $("result").innerHTML = "";
+  ["submit","skip"].forEach(b => $(b).classList.remove("hide"));
+  ["override","next"].forEach(b => $(b).classList.add("hide"));
+}
+
+function judge(input){
+  const x = list[i], ok = input !== null && isCorrect(input, x.k);
+  if (ok) score++;
+  log.push({x, input: input || "", ok});
+  $("ans").disabled = true;
+  $("result").className = "result " + (ok ? "ok" : "bad");
+  $("result").innerHTML = (ok ? "⭕ 정답!" : "❌ 아쉬워요") + ` &nbsp;정답: <b></b>`;
+  $("result").querySelector("b").textContent = x.a;
+  $("live").textContent = `점수 ${score}`;
+  ["submit","skip"].forEach(b => $(b).classList.add("hide"));
+  $("next").classList.remove("hide");
+  $("override").classList.toggle("hide", ok || input === null);
+  $("next").textContent = i === list.length - 1 ? "결과 보기 →" : "다음 문제 →";
+  $("next").focus();
+}
+
+function next(){ i++; i < list.length ? show() : finish(); }
+
+function finish(){
+  $("play").classList.add("hide"); $("end").classList.remove("hide");
+  const pct = Math.round(score / list.length * 100);
+  $("final").textContent = `${score} / ${list.length}`;
+  $("grade").textContent = pct >= 90 ? "🏆 상식왕! 대단해요" : pct >= 70 ? "👏 상식이 풍부하시네요" : pct >= 50 ? "🙂 평균 이상이에요" : "📚 조금 더 공부해 볼까요?";
+  const ol = $("review"); ol.innerHTML = "";
+  log.forEach(({x, input, ok}) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span></span><span class="tag ${ok ? "o" : "x"}">${ok ? "O" : "X"}</span><br><small style="color:var(--muted)"></small>`;
+    li.children[0].textContent = x.q;
+    li.querySelector("small").textContent = `정답: ${x.a}` + (ok ? "" : `  ·  내 답: ${input || "(모름)"}`);
+    ol.appendChild(li);
+  });
+}
+
+$("go").onclick = start;
+$("again").onclick = () => { $("end").classList.add("hide"); $("start").classList.remove("hide"); };
+$("form").onsubmit = e => { e.preventDefault(); if (!$("ans").disabled && $("ans").value.trim()) judge($("ans").value); };
+$("skip").onclick = () => judge(null);
+$("next").onclick = next;
+$("override").onclick = () => { score++; log[log.length - 1].ok = true; $("live").textContent = `점수 ${score}`;
+  $("result").className = "result ok"; $("override").classList.add("hide"); };
+</script>
+</body>
+</html>
