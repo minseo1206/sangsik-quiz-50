@@ -44,6 +44,10 @@ input[type=text]{width:100%;padding:12px 14px;border-radius:10px;border:1px soli
 .result b{color:var(--ink)}
 .mode label{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;margin-bottom:8px}
 .mode small{color:var(--muted);display:block}
+.choices{display:grid;gap:8px;margin-bottom:4px}
+.choice{text-align:left;font-weight:500}
+.choice.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.choice.wrong{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
 .score{font-size:2.6rem;font-weight:800;margin:4px 0}
 ol.review{padding-left:22px;margin:12px 0 0}
 ol.review li{margin-bottom:8px;word-break:keep-all}
@@ -62,7 +66,7 @@ footer{margin-top:28px;color:var(--muted);font-size:.8rem;text-align:center}
 
   <section id="start" class="card">
     <div class="mode">
-      <label><input type="radio" name="mode" value="all" checked> <span><b>전체 50문항</b><small>영상에 나온 문제 전부</small></span></label>
+      <label><input type="radio" name="mode" value="all" checked> <span><b>전체 60문항</b><small>추가 문제 10개 + 영상에 나온 문제 50개</small></span></label>
       <label><input type="radio" name="mode" value="hard"> <span><b>⭐ 어려운 문제만 (16문항)</b><small>상대적으로 난이도가 높은 문제</small></span></label>
       <label><input type="checkbox" id="shuffle"> <span><b>문제 순서 섞기</b></span></label>
     </div>
@@ -74,6 +78,7 @@ footer{margin-top:28px;color:var(--muted);font-size:.8rem;text-align:center}
     <div class="bar"><i id="prog"></i></div>
     <div class="star hide" id="star">⭐ 어려운 문제</div>
     <p class="q" id="qtext"></p>
+    <div class="choices hide" id="choices"></div>
     <form id="form" autocomplete="off">
       <input type="text" id="ans" placeholder="정답을 입력하세요">
       <div class="row" style="margin-top:10px">
@@ -98,8 +103,18 @@ footer{margin-top:28px;color:var(--muted);font-size:.8rem;text-align:center}
 </div>
 
 <script>
-// h: 어려운 문제 여부, a: 표시용 정답, k: 허용 답안 목록 (각 항목은 모두 포함되어야 하는 키워드 배열)
+// add: 추가 문제, c: 객관식 보기, h: 어려운 문제 여부, a: 표시용 정답, k: 허용 답안 목록 (각 항목은 모두 포함되어야 하는 키워드 배열)
 const Q = [
+ {add:1,q:"오드아이는 무슨 이유 때문에 발생하나요?", a:"멜라닌 색소의 농도 차이 때문에", k:[["멜라닌"]]},
+ {add:1,q:"ㅇㅇㅇㅇㅇ로 쓰인 이슬람교 경전은 코란인데요, 그렇다면 ㅇㅇㅇㅇㅇ에 들어갈 말은 무엇인가요?", c:["영어","아라비아어","불어","한국어"], a:"② 아라비아어", k:[["아라비아어"]]},
+ {add:1,q:"'내 집 뒷마당은 안 된다'라는 의미를 가진 시사 용어 '님비(NIMBY)'의 정확한 풀네임은 무엇인가요?", a:"Not In My Back Yard", k:[["notinmybackyard"]]},
+ {add:1,q:"두 명의 플레이어 중 어느 한쪽이 포기하면 다른 쪽이 이득을 보게 되는 것을 무엇이라고 하나요?", a:"치킨 게임", k:[["치킨게임"],["chicken"]]},
+ {add:1,q:"모아이 석상이 있는 섬의 이름은?", a:"이스터섬", k:[["이스터"],["라파누이"]]},
+ {add:1,q:"민간신앙과 유교, 불교, 선종의 교리를 혼합하여 만든 우리나라의 민족종교는 동학인데요, '동학'이라는 이름이 들어가는 한국의 운동은 동학 농민 운동입니다. 동학 농민 운동과 관련 있는 사람은?", c:["나폴레옹","세종대왕","전봉준","이성계"], a:"③ 전봉준", k:[["전봉준"]]},
+ {add:1,q:"술을 만들 때 쓰는 발효제이면서, 곡물에 곰팡이를 번식시켜 당화 효소가 생성된 발효제로 막걸리 등을 만들 때 사용하는 이것은?", a:"누룩", k:[["누룩"]]},
+ {add:1,q:"한국에는 남극 과학기지가 있는데요, 그중 대한민국 최초의 남극 과학기지는 무엇인가요?", c:["세종과학기지","장보고과학기지"], a:"① 세종과학기지", k:[["세종과학기지"]]},
+ {add:1,q:"「백조의 호수」를 작곡한 사람의 이름은?", a:"차이코프스키", k:[["차이코프스키"],["차이콥스키"]]},
+ {add:1,q:"아이스하키에서 사용되는 공의 이름은? (영어로 작성)", a:"Puck", k:[["puck"]]},
  {q:"대한민국에서 가장 큰 섬의 이름은?", a:"제주도", k:[["제주"]]},
  {h:1,q:"홍채 세포 DNA의 이상으로 멜라닌 색소 농도가 달라져, 양쪽 눈의 색깔이 다른 현상은?", a:"오드아이", k:[["오드아이"],["홍채이색"]]},
  {q:"전래동화 「콩쥐팥쥐」에서 밑 빠진 독을 막아 준 동물은?", a:"두꺼비", k:[["두꺼비"]]},
@@ -160,7 +175,8 @@ let list = [], i = 0, score = 0, log = [];
 
 function start(){
   const hard = document.querySelector('input[name=mode]:checked').value === "hard";
-  list = Q.map((x, idx) => ({...x, n: idx + 1})).filter(x => !hard || x.h);
+  let v = 0;
+  list = Q.map(x => ({...x, src: x.add ? "추가 문제" : `영상 ${++v}번`})).filter(x => !hard || x.h);
   if ($("shuffle").checked) for (let j = list.length - 1; j > 0; j--) { const r = Math.floor(Math.random() * (j + 1)); [list[j], list[r]] = [list[r], list[j]]; }
   i = 0; score = 0; log = [];
   $("start").classList.add("hide"); $("end").classList.add("hide"); $("play").classList.remove("hide");
@@ -169,14 +185,22 @@ function start(){
 
 function show(){
   const x = list[i];
-  $("pos").textContent = `${i + 1} / ${list.length}  (원본 ${x.n}번)`;
+  $("pos").textContent = `${i + 1} / ${list.length}  (${x.src})`;
   $("live").textContent = `점수 ${score}`;
   $("prog").style.width = (i / list.length * 100) + "%";
   $("star").classList.toggle("hide", !x.h);
   $("qtext").textContent = `Q${i + 1}. ${x.q}`;
-  $("ans").value = ""; $("ans").disabled = false; $("ans").focus();
+  const box = $("choices"); box.innerHTML = "";
+  box.classList.toggle("hide", !x.c); $("ans").classList.toggle("hide", !!x.c); $("submit").classList.toggle("hide", !!x.c);
+  (x.c || []).forEach((c, j) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "btn choice"; b.textContent = `${"①②③④"[j]} ${c}`; b.dataset.v = c;
+    b.onclick = () => judge(c);
+    box.appendChild(b);
+  });
+  $("ans").value = ""; $("ans").disabled = false; if (!x.c) $("ans").focus();
   $("result").className = "result"; $("result").innerHTML = "";
-  ["submit","skip"].forEach(b => $(b).classList.remove("hide"));
+  $("skip").classList.remove("hide");
   ["override","next"].forEach(b => $(b).classList.add("hide"));
 }
 
@@ -185,13 +209,18 @@ function judge(input){
   if (ok) score++;
   log.push({x, input: input || "", ok});
   $("ans").disabled = true;
+  $("choices").querySelectorAll("button").forEach(b => {
+    b.disabled = true;
+    if (isCorrect(b.dataset.v, x.k)) b.classList.add("right");
+    else if (b.dataset.v === input) b.classList.add("wrong");
+  });
   $("result").className = "result " + (ok ? "ok" : "bad");
   $("result").innerHTML = (ok ? "⭕ 정답!" : "❌ 아쉬워요") + ` &nbsp;정답: <b></b>`;
   $("result").querySelector("b").textContent = x.a;
   $("live").textContent = `점수 ${score}`;
   ["submit","skip"].forEach(b => $(b).classList.add("hide"));
   $("next").classList.remove("hide");
-  $("override").classList.toggle("hide", ok || input === null);
+  $("override").classList.toggle("hide", ok || input === null || !!x.c);
   $("next").textContent = i === list.length - 1 ? "결과 보기 →" : "다음 문제 →";
   $("next").focus();
 }
